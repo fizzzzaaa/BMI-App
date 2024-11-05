@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'IconText.dart';
 import 'ContainerFile.dart';
+const activeColor = Color(0xFF1D1E33)
+const deactiveColor = Color(0xFF111328)
+
+
+
 class InputPage extends StatefulWidget {
 
   @override
@@ -24,7 +29,7 @@ class InputPageState extends State<InputPage> {
                     colors:Color(0xFF1D1E33),
                     cardwidget: RepeatTextandIcon(
                       iconData:FontAwesomeIcons.person,
-                      label: "MALA",
+                      label: "Male",
                     ),
                   ),
                 ),
