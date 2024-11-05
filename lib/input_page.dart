@@ -24,7 +24,7 @@ class InputPageState extends State<InputPage> {
                     colors:Color(0xFF1D1E33),
                     cardwidget: RefactorTextandIcon(
                       iconData:FontAwesomeIcons.person,
-                      label: "MALA",
+                      label: "Male",
                     ),
                   ),
                 ),
