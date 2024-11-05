@@ -20,7 +20,7 @@ class InputPageState extends State<InputPage> {
             child: Row(
               children: <Widget>[
                 Expanded(
-                  child: RepeatRefactorCode(
+                  child: RepeatRefactor(
                     colors:Color(0xFF1D1E33),
                     cardwidget: RefactorTextandIcon(
                       iconData:FontAwesomeIcons.person,
