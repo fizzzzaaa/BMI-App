@@ -20,7 +20,7 @@ class InputPageState extends State<InputPage> {
             child: Row(
               children: <Widget>[
                 Expanded(
-                  child: RepeatRefactor(
+                  child: RepeatContainer(
                     colors:Color(0xFF1D1E33),
                     cardwidget: RefactorTextandIcon(
                       iconData:FontAwesomeIcons.person,
@@ -29,7 +29,7 @@ class InputPageState extends State<InputPage> {
                   ),
                 ),
                 Expanded(
-                    child:RepeatRefactor(colors:Color(0xFF1D1E33),
+                    child:RepeatContainer(colors:Color(0xFF1D1E33),
                       cardwidget: RefactorTextandIcon(
                         iconData:FontAwesomeIcons.female,
                         label: "Female",
@@ -40,18 +40,18 @@ class InputPageState extends State<InputPage> {
             ),
           ),
           Expanded(
-            child:RepeatRefactor(colors:Color(0xFF1D1E33),
+            child:RepeatContainer(colors:Color(0xFF1D1E33),
             ),
           ),
           Expanded(
             child: Row(
               children: <Widget>[
                 Expanded(
-                  child:RepeatRefactor(colors:Color(0xFF1D1E33),
+                  child:RepeatContainer(colors:Color(0xFF1D1E33),
                   ),
                 ),
                 Expanded(
-                  child: RepeatRefactor(colors:Color(0xFF1D1E33),
+                  child: RepeatContainer(colors:Color(0xFF1D1E33),
                   ),
                 ),
               ],
