@@ -22,7 +22,7 @@ class InputPageState extends State<InputPage> {
                 Expanded(
                   child: RepeatContainer(
                     colors:Color(0xFF1D1E33),
-                    cardwidget: RefactorTextandIcon(
+                    cardwidget: RepeatTextandIcon(
                       iconData:FontAwesomeIcons.person,
                       label: "MALA",
                     ),
@@ -30,7 +30,7 @@ class InputPageState extends State<InputPage> {
                 ),
                 Expanded(
                     child:RepeatContainer(colors:Color(0xFF1D1E33),
-                      cardwidget: RefactorTextandIcon(
+                      cardwidget: RepeatTextandIcon(
                         iconData:FontAwesomeIcons.female,
                         label: "Female",
                       ),)
