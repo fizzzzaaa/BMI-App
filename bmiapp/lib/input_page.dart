@@ -9,10 +9,14 @@ const deactiveColor = Color(0xFF111328)
 
 class InputPage extends StatefulWidget {
 
+
   @override
   InputPageState createState() => InputPageState();
 }
 class InputPageState extends State<InputPage> {
+  Color maleColor = deactiveColor;
+  Color femaleColor = deactiveColor;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,7 +30,7 @@ class InputPageState extends State<InputPage> {
               children: <Widget>[
                 Expanded(
                   child: RepeatContainer(
-                    colors:Color(0xFF1D1E33),
+                    colors:maleColor,
                     cardwidget: RepeatTextandIcon(
                       iconData:FontAwesomeIcons.person,
                       label: "Male",
@@ -34,7 +38,7 @@ class InputPageState extends State<InputPage> {
                   ),
                 ),
                 Expanded(
-                    child:RepeatContainer(colors:Color(0xFF1D1E33),
+                    child:RepeatContainer(colors:femaleColor,
                       cardwidget: RepeatTextandIcon(
                         iconData:FontAwesomeIcons.female,
                         label: "Female",
