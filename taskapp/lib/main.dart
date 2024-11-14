@@ -1,0 +1,584 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'task_database.dart';
+import 'task.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  bool isDarkMode = false;
+  bool areNotificationsEnabled = true;
+
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeNotifications();
+  }
+
+  // Request notification permission
+  Future<void> _requestPermissions() async {
+    PermissionStatus status = await Permission.notification.request();
+    if (status.isGranted) {
+      print("Notification permission granted");
+    } else {
+      print("Notification permission denied");
+    }
+  }
+
+  void _initializeNotifications() async {
+    // Request permissions before initializing
+    await _requestPermissions();
+
+    const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('app_icon'); // Ensure app_icon exists in drawable folder
+    final InitializationSettings initializationSettings = const InitializationSettings(android: initializationSettingsAndroid);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+
+    bool? initialized = await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    if (initialized == null || !initialized) {
+      print("Notification initialization failed.");
+    } else {
+      print("Notification initialized successfully.");
+    }
+  }
+
+  Future<void> _showNotification(String title, String body) async {
+    if (!areNotificationsEnabled) return;
+
+    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'channel_id',
+      'channel_name',
+      channelDescription: 'Your channel description',
+      importance: Importance.max,
+      priority: Priority.high,
+      ticker: 'ticker',
+      styleInformation: BigTextStyleInformation(
+        body,
+        htmlFormatBigText: true,
+        contentTitle: title,
+        htmlFormatContentTitle: true,
+      ),
+      color: Colors.tealAccent,
+      largeIcon: const DrawableResourceAndroidBitmap('app_icon'),  // Correct reference to the drawable icon
+      icon: 'app_icon',  // Set the small icon in the notification (also from the drawable folder)
+    );
+
+    NotificationDetails generalNotificationDetails = NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      body,
+      generalNotificationDetails,
+    );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> _screens = [
+      HomeScreen(notificationCallback: _showNotification),
+      AddTaskScreen(notificationCallback: _showNotification),
+      CompletedTasksScreen(),
+      RepeatedTasksScreen(),
+      SettingsScreen(
+        onDarkModeToggle: (bool value) {
+          setState(() {
+            isDarkMode = value;
+          });
+        },
+        onNotificationToggle: (bool value) {
+          setState(() {
+            areNotificationsEnabled = value;
+          });
+        },
+        isDarkMode: isDarkMode,
+        areNotificationsEnabled: areNotificationsEnabled,
+      ),
+    ];
+
+    return MaterialApp(
+      theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'TaskMaster',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.tealAccent,
+          elevation: 5.0,
+        ),
+        body: _screens[_currentIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: _onItemTapped,
+          backgroundColor: Colors.tealAccent,  // Blue background
+          selectedItemColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white  // White text in dark mode
+              : Colors.black, // Black text in light mode
+          unselectedItemColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white70  // Lighter white in dark mode
+              : Colors.black54, // Lighter black in light mode
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.add_box_rounded), label: 'Add Task'),
+            BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Completed'),
+            BottomNavigationBarItem(icon: Icon(Icons.repeat_on), label: 'Repeated'),
+            BottomNavigationBarItem(icon: Icon(Icons.settings_applications), label: 'Settings'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+// CompletedTasksScreen - Displays all completed tasks
+class CompletedTasksScreen extends StatefulWidget {
+  @override
+  _CompletedTasksScreenState createState() => _CompletedTasksScreenState();
+}
+
+class _CompletedTasksScreenState extends State<CompletedTasksScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Completed Tasks')),
+      body: FutureBuilder<List<Task>>(
+        future: TaskDatabaseHelper.instance.getTasks(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No completed tasks found.'));
+          }
+
+          var tasks = snapshot.data!.where((task) => task.isCompleted).toList();
+          return ListView.builder(
+            itemCount: tasks.length,
+            itemBuilder: (context, index) {
+              final task = tasks[index];
+              return Card(
+                elevation: 8,
+                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                child: ListTile(
+                  title: Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(task.description),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+// RepeatedTasksScreen - Displays tasks that have been inserted with the same name
+class RepeatedTasksScreen extends StatefulWidget {
+  @override
+  _RepeatedTasksScreenState createState() => _RepeatedTasksScreenState();
+}
+
+class _RepeatedTasksScreenState extends State<RepeatedTasksScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Repeated Tasks')),
+      body: FutureBuilder<List<Task>>(
+        future: TaskDatabaseHelper.instance.getTasks(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No repeated tasks found.'));
+          }
+
+          var tasks = snapshot.data!;
+          var repeatedTasks = tasks.where((task) => tasks.where((t) => t.name == task.name).length > 1).toList();
+
+          return ListView.builder(
+            itemCount: repeatedTasks.length,
+            itemBuilder: (context, index) {
+              final task = repeatedTasks[index];
+              return Card(
+                elevation: 8,
+                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                child: ListTile(
+                  title: Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(task.description),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+// HomeScreen - Displays all tasks
+class HomeScreen extends StatefulWidget {
+  final Future<void> Function(String, String) notificationCallback;
+
+  HomeScreen({required this.notificationCallback});
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Future<void> _generateAndPrintPDF(List<Task> tasks) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(pw.Page(
+      build: (pw.Context context) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text("Task List", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 20),
+            ...tasks.map((task) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 10),
+                child: pw.Text(
+                  "${task.name}: ${task.description}",
+                  style: const pw.TextStyle(fontSize: 18),
+                ),
+              );
+            }).toList(),
+          ],
+        );
+      },
+    ));
+
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Home',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.tealAccent,
+        elevation: 5.0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.print, size: 30.0),
+            onPressed: () async {
+              // Fetch the tasks currently displayed on the screen
+              var tasks = await TaskDatabaseHelper.instance.getTasks();
+              // Filter tasks based on the current screen's state, e.g., only display incomplete tasks
+              var displayedTasks = tasks.where((task) => !task.isCompleted).toList();
+              // Generate and print the PDF for the displayed tasks
+              _generateAndPrintPDF(displayedTasks);
+            },
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<Task>>(
+        future: TaskDatabaseHelper.instance.getTasks(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No tasks found.'));
+          }
+
+          var tasks = snapshot.data!;
+          return ListView.builder(
+            itemCount: tasks.length,
+            itemBuilder: (context, index) {
+              final task = tasks[index];
+              return Card(
+                elevation: 8,
+                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                child: ListTile(
+                  title: Text(
+                    task.name,
+                    style: TextStyle(
+                      decoration: task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(task.description),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditTaskScreen(task: task),
+                            ),
+                          ).then((_) => setState(() {}));
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_forever),
+                        onPressed: () async {
+                          await TaskDatabaseHelper.instance.deleteTask(task.id!);
+                          setState(() {});
+                          widget.notificationCallback("Task Deleted", "${task.name} has been deleted.");
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.check_circle),
+                        onPressed: () async {
+                          task.isCompleted = true;
+                          await TaskDatabaseHelper.instance.updateTask(task);
+                          setState(() {});
+                          widget.notificationCallback("Task Completed", "${task.name} is marked as completed.");
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+
+// AddTaskScreen - Add a new task
+class AddTaskScreen extends StatefulWidget {
+  final Future<void> Function(String, String) notificationCallback;
+
+  AddTaskScreen({required this.notificationCallback});
+
+  @override
+  _AddTaskScreenState createState() => _AddTaskScreenState();
+}
+
+class _AddTaskScreenState extends State<AddTaskScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _descriptionController = TextEditingController();
+  }
+
+  void _addTask() async {
+    if (_formKey.currentState!.validate()) {
+      String taskName = _nameController.text;
+
+      // Check if task already exists
+      var existingTasks = await TaskDatabaseHelper.instance.getTasks();
+      bool taskExists = existingTasks.any((task) => task.name == taskName);
+
+      if (taskExists) {
+        widget.notificationCallback("Task Exists", "The task '${taskName}' already exists.");
+        return;
+      }
+
+      // Create new task object
+      Task task = Task(
+        name: taskName,
+        description: _descriptionController.text,
+      );
+
+      // Insert task into the database
+      await TaskDatabaseHelper.instance.insertTask(task);
+
+      // Trigger the notification after the task is added
+      widget.notificationCallback("New Task Added", "The task '$taskName' has been added.");
+
+      // Trigger a state update to refresh the UI (in the parent screen)
+      setState(() {
+        // Any state change to trigger UI rebuild
+      });
+
+      // Navigate back after the task is added
+      Navigator.pop(context);
+
+      // Optionally, show a Snackbar to confirm task addition
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task added')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Add New Task')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Task Name'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a task name';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(labelText: 'Task Description'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a task description';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _addTask,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.tealAccent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                ),
+                child: const Text(
+                  'Add Task',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// EditTaskScreen - Edit an existing task
+class EditTaskScreen extends StatefulWidget {
+  final Task task;
+
+  EditTaskScreen({required this.task});
+
+  @override
+  _EditTaskScreenState createState() => _EditTaskScreenState();
+}
+
+class _EditTaskScreenState extends State<EditTaskScreen> {
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.task.name);
+    _descriptionController = TextEditingController(text: widget.task.description);
+  }
+
+  void _saveTask() async {
+    Task updatedTask = Task(
+      id: widget.task.id,
+      name: _nameController.text,
+      description: _descriptionController.text,
+      isCompleted: widget.task.isCompleted,
+    );
+
+    await TaskDatabaseHelper.instance.updateTask(updatedTask);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Edit Task')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Task Name'),
+            ),
+            TextFormField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(labelText: 'Task Description'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _saveTask,
+              child: const Text('Save Task'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// SettingsScreen - Toggle settings for dark mode and notifications
+class SettingsScreen extends StatelessWidget {
+  final Function(bool) onDarkModeToggle;
+  final Function(bool) onNotificationToggle;
+  final bool isDarkMode;
+  final bool areNotificationsEnabled;
+
+  SettingsScreen({
+    required this.onDarkModeToggle,
+    required this.onNotificationToggle,
+    required this.isDarkMode,
+    required this.areNotificationsEnabled,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            SwitchListTile(
+              title: const Text('Dark Mode'),
+              value: isDarkMode,
+              onChanged: onDarkModeToggle,
+            ),
+            SwitchListTile(
+              title: const Text('Enable Notifications'),
+              value: areNotificationsEnabled,
+              onChanged: onNotificationToggle,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
