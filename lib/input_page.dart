@@ -2,12 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'IconText.dart';
 import 'ContainerFile.dart';
-class InputPage extends StatefulWidget {
 
+const activeColor = Color(0xFF1D1E33);
+const deActivColor = Color(0xFF111328);
+enum Gender{
+  male,
+  female,
+}
+
+class InputPage extends StatefulWidget {
   @override
   InputPageState createState() => InputPageState();
 }
+
 class InputPageState extends State<InputPage> {
+ Gender? selectGender;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,38 +30,51 @@ class InputPageState extends State<InputPage> {
             child: Row(
               children: <Widget>[
                 Expanded(
-                  child: RepeatRefactorCode(
-                    colors:Color(0xFF1D1E33),
-                    cardwidget: RefactorTextandIcon(
-                      iconData:FontAwesomeIcons.person,
-                      label: "Male",
+                    child: RepeatRefactorCode(
+                      onPressed: (){
+                        setState(() {
+                          selectGender=Gender.male;
+                        });
+                      },
+                      colors: selectGender==Gender.male?activeColor:deActivColor,
+                      cardwidget: RefactorTextandIcon(
+                        iconData:FontAwesomeIcons.person,
+                        label: "Male",
+                      ),
                     ),
-                  ),
+
                 ),
                 Expanded(
-                    child:RepeatRefactorCode(colors:Color(0xFF1D1E33),
-                      cardwidget: RefactorTextandIcon(
-                        iconData:FontAwesomeIcons.female,
-                        label: "Female",
-                      ),)
+                      child: RepeatRefactorCode(
+                        onPressed: (){
+                          setState(() {
+                            selectGender=Gender.female;
+                          });
+                        },
+                        colors:selectGender==Gender.female?activeColor:deActivColor,
+                        cardwidget: RefactorTextandIcon(
+                          iconData:FontAwesomeIcons.female,
+                          label: "Female",
+                        ),),
+
 
                 ),
               ],
             ),
           ),
           Expanded(
-            child:RepeatRefactorCode(colors:Color(0xFF1D1E33),
+            child:RepeatRefactorCode(colors:Color(0xFF1D1E33), onPressed: () {  },
             ),
           ),
           Expanded(
             child: Row(
               children: <Widget>[
                 Expanded(
-                  child:RepeatRefactorCode(colors:Color(0xFF1D1E33),
+                  child:RepeatRefactorCode(colors:Color(0xFF1D1E33), onPressed: () {  },
                   ),
                 ),
                 Expanded(
-                  child: RepeatRefactorCode(colors:Color(0xFF1D1E33),
+                  child: RepeatRefactorCode(colors:Color(0xFF1D1E33), onPressed: () {  },
                   ),
                 ),
               ],
@@ -59,10 +82,6 @@ class InputPageState extends State<InputPage> {
           ),
         ],
       ),
-    ); // End of Scaffold
+    ); //
   }
 }
-
-
-
-
